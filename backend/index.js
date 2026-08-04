@@ -2,6 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import connectDB from "./config/db.js";
 import customerRoutes from "./routes/customer.route.js";
+import orderRoutes from "./routes/order.route.js";
 
 
 dotenv.config();
@@ -13,6 +14,7 @@ app.use(express.json());
 
 // Routes
 app.use("/api/customers", customerRoutes);
+app.use("/api/orders", orderRoutes);
 
 app.get("/health", (req, res) => {
     res.status(200).json({
@@ -20,8 +22,8 @@ app.get("/health", (req, res) => {
         message: "Payment backend is fine"
     });
 });
-
-const start = async () => { // only start the server when db connection is established
+// only start the server when db connection is established
+const start = async () => {
     await connectDB();
 
     app.listen(PORT, () => {
