@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import connectDB from "./config/db.js";
 import customerRoutes from "./routes/customer.route.js";
 import orderRoutes from "./routes/order.route.js";
+import paymentRoutes from "./routes/payment.route.js";
 
 
 dotenv.config();
@@ -15,6 +16,7 @@ app.use(express.json());
 // Routes
 app.use("/api/customers", customerRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/payments", paymentRoutes);
 
 app.get("/health", (req, res) => {
     res.status(200).json({
