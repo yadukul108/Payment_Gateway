@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import mongoose from "mongoose";
 import { getRazorpayClient } from "../config/razorpay.js";
 import Order from "../models/orders.model.js";
@@ -99,6 +100,92 @@ export const createPayment = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Internal server error",
+    });
+  }
+};
+
+/**
+ * Verify Razorpay payment signature, update payment and order tables, log the captured event
+ * @route POST /api/payments/verify
+ */
+export const verifyPayment = async (req, res) => {
+  try {
+    const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = req.body;
+
+    // 1. Validate Request Payload
+    if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
+      return res.status(400).json({
+        success: false,
+        message: "razorpay_payment_id, razorpay_order_id, and razorpay_signature are required",
+      });
+    }
+
+    // 2. Cryptographically Verify Signature
+    const text = razorpay_order_id + "|" + razorpay_payment_id;
+    const generatedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET || "")
+      .update(text)
+      .digest("hex");
+
+    if (generatedSignature !== razorpay_signature) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid payment signature verification failed",
+      });
+    }
+
+    // 3. Find the Payment row using gateway_order_id
+    const payment = await Payment.findOne({ gateway_order_id: razorpay_order_id });
+    if (!payment) {
+      return res.status(404).json({
+        success: false,
+        message: "Payment record not found for the given razorpay_order_id",
+      });
+    }
+
+    // 4. Update Payment record status
+    payment.gateway_payment_id = razorpay_payment_id;
+    payment.status = "captured";
+    await payment.save();
+
+    // 5. Update Order record status
+    const order = await Order.findById(payment.order_id);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order associated with payment not found",
+      });
+    }
+
+    order.payment_status = "paid";
+    order.status = "completed";
+    order.paid_at = new Date();
+    await order.save();
+
+    // 6. Insert PaymentEvent (captured)
+    const paymentEvent = new PaymentEvent({
+      payment_id: payment._id,
+      event_type: "captured",
+      gateway_event_id: razorpay_payment_id,
+      payload: {
+        razorpay_payment_id,
+        razorpay_order_id,
+        razorpay_signature,
+      },
+    });
+    await paymentEvent.save();
+
+    // 7. Return success response
+    return res.status(200).json({
+      success: true,
+      message: "Payment verified successfully",
+    });
+
+  } catch (error) {
+    console.error("Error in verifyPayment controller:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error during payment verification",
     });
   }
 };
