@@ -144,9 +144,11 @@ export const verifyPayment = async (req, res) => {
     }
 
     // 4. Update Payment record status
-    payment.gateway_payment_id = razorpay_payment_id;
-    payment.status = "captured";
-    await payment.save();
+    if (payment.status !== "captured") {
+      payment.gateway_payment_id = razorpay_payment_id;
+      payment.status = "captured";
+      await payment.save();
+    }
 
     // 5. Update Order record status
     const order = await Order.findById(payment.order_id);
@@ -157,10 +159,12 @@ export const verifyPayment = async (req, res) => {
       });
     }
 
-    order.payment_status = "paid";
-    order.status = "completed";
-    order.paid_at = new Date();
-    await order.save();
+    if (order.payment_status !== "paid") {
+      order.payment_status = "paid";
+      order.status = "completed";
+      order.paid_at = new Date();
+      await order.save();
+    }
 
     // 6. Insert PaymentEvent (captured)
     const paymentEvent = new PaymentEvent({
@@ -186,6 +190,127 @@ export const verifyPayment = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Internal server error during payment verification",
+    });
+  }
+};
+
+/**
+ * Handle Webhook events sent by Razorpay
+ * @route POST /api/payments/webhook
+ */
+export const handleWebhook = async (req, res) => {
+  try {
+    const signature = req.headers["x-razorpay-signature"];
+    const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || "";
+
+    if (!signature) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing x-razorpay-signature header",
+      });
+    }
+
+    // 1. Verify Webhook Signature
+    const expectedSignature = crypto
+      .createHmac("sha256", webhookSecret)
+      .update(req.rawBody || "")
+      .digest("hex");
+
+    if (expectedSignature !== signature) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid webhook signature verification failed",
+      });
+    }
+
+    const { event, payload } = req.body;
+    if (!event || !payload) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid webhook payload structure",
+      });
+    }
+
+    // 2. We only care about payments-related events
+    const paymentData = payload.payment?.entity;
+    if (!paymentData) {
+      return res.status(200).json({
+        success: true,
+        message: "Event ignored: no payment entity",
+      });
+    }
+
+    const razorpay_order_id = paymentData.order_id;
+    const razorpay_payment_id = paymentData.id;
+
+    if (!razorpay_order_id) {
+      return res.status(200).json({
+        success: true,
+        message: "Event ignored: missing order_id",
+      });
+    }
+
+    // 3. Find Payment in DB
+    const payment = await Payment.findOne({ gateway_order_id: razorpay_order_id });
+    if (!payment) {
+      console.warn(`Payment record not found for webhook order_id: ${razorpay_order_id}`);
+      return res.status(200).json({
+        success: true,
+        message: `Payment record not found for order ${razorpay_order_id}`,
+      });
+    }
+
+    // 4. Log Webhook Event
+    const paymentEvent = new PaymentEvent({
+      payment_id: payment._id,
+      event_type: "webhook_received",
+      gateway_event_id: req.headers["x-razorpay-event-id"] || razorpay_payment_id,
+      payload: req.body,
+    });
+    await paymentEvent.save();
+
+    // 5. Update statuses based on event type
+    if (event === "payment.captured") {
+      // Update Payment
+      if (payment.status !== "captured") {
+        payment.gateway_payment_id = razorpay_payment_id;
+        payment.status = "captured";
+        await payment.save();
+      }
+
+      // Update Order
+      const order = await Order.findById(payment.order_id);
+      if (order && order.payment_status !== "paid") {
+        order.payment_status = "paid";
+        order.status = "completed";
+        order.paid_at = new Date();
+        await order.save();
+      }
+    } else if (event === "payment.failed") {
+      // Update Payment to failed
+      if (payment.status !== "captured" && payment.status !== "failed") {
+        payment.status = "failed";
+        await payment.save();
+      }
+
+      // Update Order to failed
+      const order = await Order.findById(payment.order_id);
+      if (order && order.payment_status !== "paid" && order.payment_status !== "failed") {
+        order.payment_status = "failed";
+        await order.save();
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Webhook processed successfully",
+    });
+
+  } catch (error) {
+    console.error("Error handling webhook:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error during webhook handling",
     });
   }
 };

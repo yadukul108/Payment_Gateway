@@ -1,5 +1,5 @@
 import express from "express";
-import { createPayment, verifyPayment } from "../controllers/payments.controller.js";
+import { createPayment, verifyPayment, handleWebhook } from "../controllers/payments.controller.js";
 
 const router = express.Router();
 
@@ -8,5 +8,8 @@ router.post("/create", createPayment);
 
 // Route: POST /api/payments/verify
 router.post("/verify", verifyPayment);
+
+// Route: POST /api/payments/webhook
+router.post("/webhook", handleWebhook);
 
 export default router;

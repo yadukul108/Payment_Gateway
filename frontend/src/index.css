@@ -1,0 +1,180 @@
+:root {
+    --bg-color: #0a192f;
+    --bg-darker: #020c1b;
+    --card-bg: #112240;
+    --border-color: #233554;
+    --text-primary: #e6f1ff;
+    --text-secondary: #8892b0;
+    --accent-teal: #64ffda;
+    --accent-blue: #00d2ff;
+    --error-red: #ff5555;
+    --success-green: #50fa7b;
+    --font-mono: 'JetBrains Mono', ui-monospace, 'Consolas', monospace;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: var(--font-mono);
+    background-color: var(--bg-color);
+    background-image: radial-gradient(circle at 10% 20%, rgba(17, 34, 64, 0.5) 0%, rgba(10, 25, 47, 1) 90%);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: var(--bg-darker);
+}
+::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-teal);
+}
+
+/* Glassmorphic Card Styling */
+.card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.card:hover {
+    border-color: rgba(100, 255, 218, 0.3);
+    box-shadow: 0 10px 30px -15px rgba(2, 12, 27, 0.7);
+    transform: translateY(-2px);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    border-bottom: 1px solid rgba(35, 53, 84, 0.4);
+    padding-bottom: 0.5rem;
+}
+
+.card-title {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--accent-blue);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.card-step {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+/* Form Controls */
+.form-group {
+    margin-bottom: 1.25rem;
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.4rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.form-control {
+    width: 100%;
+    background-color: var(--bg-darker);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 0.65rem 0.8rem;
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.form-control:focus {
+    border-color: var(--accent-teal);
+    box-shadow: 0 0 8px rgba(100, 255, 218, 0.15);
+}
+
+.form-control:read-only {
+    opacity: 0.75;
+    background-color: rgba(2, 12, 27, 0.4);
+    cursor: not-allowed;
+}
+
+/* Custom Select Dropdown Arrow */
+select.form-control {
+    appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg fill='%2364ffda' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 18px;
+    padding-right: 30px;
+}
+
+/* Buttons with premium animations */
+.btn {
+    background-color: transparent;
+    border: 1px solid var(--accent-teal);
+    color: var(--accent-teal);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 0.65rem 1.25rem;
+    border-radius: 4px;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.25s cubic-bezier(0.645, 0.045, 0.355, 1);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn:hover:not(:disabled) {
+    background-color: rgba(100, 255, 218, 0.1);
+    transform: translateY(-1px);
+    box-shadow: 0 0 12px rgba(100, 255, 218, 0.25);
+}
+
+.btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.btn:disabled {
+    border-color: var(--border-color);
+    color: var(--text-secondary);
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+.btn-blue {
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+}
+
+.btn-blue:hover:not(:disabled) {
+    background-color: rgba(0, 210, 255, 0.1);
+    box-shadow: 0 0 12px rgba(0, 210, 255, 0.25);
+}
